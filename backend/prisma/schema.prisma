@@ -1,0 +1,204 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------------------------------------------------------------
+// ENUMS
+// -------------------------------------------------------------
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+enum ProductType {
+  CHAPTER       // Lifetime access to a single chapter
+  SUBJECT_PACK  // Lifetime access to all chapters in a subject (including future additions)
+  MONTHLY_PASS  // 30 days access to all subjects & chapters in a class
+  ANNUAL_PASS   // 365 days access to all subjects & chapters in a class
+}
+
+enum OrderStatus {
+  CREATED
+  PAID
+  FAILED
+}
+
+enum EntitlementScope {
+  CHAPTER
+  SUBJECT
+  CLASS_PASS
+}
+
+// -------------------------------------------------------------
+// USER & AUTH
+// -------------------------------------------------------------
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  password     String
+  name         String?
+  role         Role          @default(STUDENT)
+  orders       Order[]
+  entitlements Entitlement[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+// -------------------------------------------------------------
+// CATALOGUE HIERARCHY: Board > Class > Subject > Chapter > Material
+// -------------------------------------------------------------
+
+model Board {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  classes   Class[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Class {
+  id        String    @id @default(uuid())
+  name      String
+  boardId   String
+  board     Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  subjects  Subject[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([boardId, name])
+}
+
+model Subject {
+  id        String    @id @default(uuid())
+  name      String
+  classId   String
+  class     Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  chapters  Chapter[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([classId, name])
+}
+
+model Chapter {
+  id        String     @id @default(uuid())
+  name      String
+  order     Int        @default(1)
+  isFree    Boolean    @default(false)
+  subjectId String
+  subject   Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  materials Material[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Material {
+  id        String   @id @default(uuid())
+  title     String
+  filePath  String
+  chapterId String
+  chapter   Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
+// COMMERCE & PRODUCTS
+// -------------------------------------------------------------
+
+model Product {
+  id         String      @id @default(uuid())
+  title      String
+  type       ProductType
+  targetId   String      // References Chapter ID, Subject ID, or Class ID
+  pricePaise Int         // Price in paise (includes 18% GST)
+  active     Boolean     @default(true)
+  orderItems OrderItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([type, targetId])
+}
+
+model Coupon {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  discountPercent Int?      // Percentage discount (e.g. 10 for 10%)
+  discountPaise   Int?      // Flat discount in paise
+  active          Boolean   @default(true)
+  expiresAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Order {
+  id              String        @id @default(uuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          OrderStatus   @default(CREATED)
+  amountPaise     Int           // Final charged amount in paise
+  razorpayOrderId String        @unique
+  items           OrderItem[]
+  payments        Payment[]
+  entitlements    Entitlement[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  pricePaise Int      // Recorded price in paise at purchase time
+  createdAt  DateTime @default(now())
+}
+
+model Payment {
+  id                String   @id @default(uuid())
+  orderId           String
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  razorpayPaymentId String   @unique
+  razorpaySignature String?
+  amountPaise       Int
+  status            String   // "captured", "failed", "refunded"
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model WebhookEvent {
+  id        String   @id @default(uuid())
+  eventId   String   @unique
+  payload   Json
+  createdAt DateTime @default(now())
+}
+
+// -------------------------------------------------------------
+// ENTITLEMENTS (Single Source of Truth for Content Access)
+// -------------------------------------------------------------
+
+model Entitlement {
+  id            String           @id @default(uuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scope         EntitlementScope
+  refId         String           // Target Chapter, Subject, or Class ID
+  expiresAt     DateTime?        // Null for lifetime, timestamp for passes
+  sourceOrderId String?
+  sourceOrder   Order?           @relation(fields: [sourceOrderId], references: [id], onDelete: SetNull)
+  revokedAt     DateTime?
+  reason        String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([userId, scope, refId])
+  @@index([userId, expiresAt])
+}
