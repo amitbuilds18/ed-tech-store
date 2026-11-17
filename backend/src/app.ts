@@ -1,6 +1,9 @@
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { Role } from '@prisma/client';
+import authRoutes from './routes/auth.routes';
+import { requireAuth, requireRole } from './middleware/auth';
 
 export const app: Application = express();
 
@@ -20,3 +23,15 @@ app.get('/api/health', (_req: Request, res: Response) => {
     service: 'edtech-backend',
   });
 });
+
+// Authentication routes (signup, login, logout, me)
+app.use('/api/auth', authRoutes);
+
+// Admin route example to verify requireRole('ADMIN') - returns 403 for students
+app.get('/api/admin/dashboard', requireAuth, requireRole(Role.ADMIN), (req: Request, res: Response) => {
+  res.status(200).json({
+    message: 'Welcome to Admin Dashboard',
+    admin: req.user,
+  });
+});
+
