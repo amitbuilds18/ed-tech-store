@@ -265,6 +265,77 @@ export const ProductDetailPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Curriculum & Included Syllabus Breakdown */}
+          {(product as any).syllabus && (
+            <div className="pt-6 border-t border-gray-100 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-blue-600" />
+                    What's Included in this {(product as any).syllabus.scope === 'CLASS_PASS' ? 'Pass' : 'Pack'}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {(product as any).syllabus.boardName} &bull; {(product as any).syllabus.className}
+                    {(product as any).syllabus.subjectName ? ` &bull; ${(product as any).syllabus.subjectName}` : ''}
+                  </p>
+                </div>
+                {(product as any).syllabus.totalChapters && (
+                  <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-100">
+                    {(product as any).syllabus.totalSubjects} Subjects &bull; {(product as any).syllabus.totalChapters} Chapters
+                  </span>
+                )}
+              </div>
+
+              {/* Class Pass Syllabus: List of Subjects & their Chapters */}
+              {(product as any).syllabus.subjects && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                  {(product as any).syllabus.subjects.map((subj: any) => (
+                    <div key={subj.id} className="p-4 rounded-2xl bg-gray-50 border border-gray-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-bold text-gray-900 text-sm">{subj.name}</h4>
+                        <span className="text-xs font-semibold text-gray-500">{subj.chaptersCount} Chapters</span>
+                      </div>
+                      <ul className="space-y-1.5">
+                        {subj.chapters.map((ch: any) => (
+                          <li key={ch.id} className="text-xs text-gray-700 flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-gray-100">
+                            <span className="truncate pr-2">{ch.order}. {ch.name}</span>
+                            {ch.isFree && (
+                              <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded">
+                                Free Preview
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Subject Pack Syllabus: List of Chapters */}
+              {(product as any).syllabus.chapters && (
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 mt-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-bold text-gray-900 text-sm">All Included Chapters</h4>
+                    <span className="text-xs font-semibold text-gray-500">{(product as any).syllabus.chaptersCount} Chapters</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {(product as any).syllabus.chapters.map((ch: any) => (
+                      <div key={ch.id} className="text-xs text-gray-700 flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-gray-100">
+                        <span className="truncate pr-2">{ch.order}. {ch.name}</span>
+                        {ch.isFree && (
+                          <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded">
+                            Free Preview
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

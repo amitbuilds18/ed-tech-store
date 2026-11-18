@@ -480,24 +480,69 @@ router.get('/products/:productId', async (req: Request, res: Response): Promise<
   }
 
   let context: any = {};
+  let syllabusDetails: any = null;
 
   if (product.type === ProductType.CHAPTER) {
     const chapter = await prisma.chapter.findUnique({
       where: { id: product.targetId },
-      include: { subject: { select: { id: true, classId: true } } },
+      include: {
+        subject: {
+          select: {
+            id: true,
+            name: true,
+            classId: true,
+            class: {
+              select: {
+                id: true,
+                name: true,
+                board: { select: { id: true, name: true } },
+              },
+            },
+          },
+        },
+        materials: {
+          select: { id: true, title: true },
+        },
+      },
     });
     if (chapter) {
       context = {
         chapterSubjectId: chapter.subject.id,
         chapterClassId: chapter.subject.classId,
       };
+      syllabusDetails = {
+        scope: 'CHAPTER',
+        chapterName: chapter.name,
+        order: chapter.order,
+        isFree: chapter.isFree,
+        subjectName: chapter.subject.name,
+        className: chapter.subject.class.name,
+        boardName: chapter.subject.class.board.name,
+        materialsCount: chapter.materials.length,
+        materials: chapter.materials,
+      };
     }
   } else if (product.type === ProductType.SUBJECT_PACK) {
     const subject = await prisma.subject.findUnique({
       where: { id: product.targetId },
       include: {
-        class: { select: { id: true } },
-        chapters: { select: { id: true } },
+        class: {
+          select: {
+            id: true,
+            name: true,
+            board: { select: { id: true, name: true } },
+          },
+        },
+        chapters: {
+          select: {
+            id: true,
+            name: true,
+            order: true,
+            isFree: true,
+            materials: { select: { id: true, title: true } },
+          },
+          orderBy: { order: 'asc' },
+        },
       },
     });
     if (subject) {
@@ -505,12 +550,82 @@ router.get('/products/:productId', async (req: Request, res: Response): Promise<
         subjectClassId: subject.class.id,
         subjectChapterIds: subject.chapters.map((c) => c.id),
       };
+      syllabusDetails = {
+        scope: 'SUBJECT',
+        subjectName: subject.name,
+        className: subject.class.name,
+        boardName: subject.class.board.name,
+        chaptersCount: subject.chapters.length,
+        chapters: subject.chapters.map((ch) => ({
+          id: ch.id,
+          name: ch.name,
+          order: ch.order,
+          isFree: ch.isFree,
+          materialsCount: ch.materials.length,
+        })),
+      };
+    }
+  } else if (product.type === ProductType.MONTHLY_PASS || product.type === ProductType.ANNUAL_PASS) {
+    const classRecord = await prisma.class.findUnique({
+      where: { id: product.targetId },
+      include: {
+        board: { select: { id: true, name: true } },
+        subjects: {
+          include: {
+            chapters: {
+              select: {
+                id: true,
+                name: true,
+                order: true,
+                isFree: true,
+                materials: { select: { id: true } },
+              },
+              orderBy: { order: 'asc' },
+            },
+          },
+          orderBy: { name: 'asc' },
+        },
+      },
+    });
+
+    if (classRecord) {
+      const totalChapters = classRecord.subjects.reduce((sum, s) => sum + s.chapters.length, 0);
+      const totalMaterials = classRecord.subjects.reduce(
+        (sum, s) => sum + s.chapters.reduce((cSum, ch) => cSum + ch.materials.length, 0),
+        0
+      );
+
+      syllabusDetails = {
+        scope: 'CLASS_PASS',
+        durationDays: product.type === ProductType.MONTHLY_PASS ? 30 : 365,
+        className: classRecord.name,
+        boardName: classRecord.board.name,
+        totalSubjects: classRecord.subjects.length,
+        totalChapters,
+        totalMaterials,
+        subjects: classRecord.subjects.map((s) => ({
+          id: s.id,
+          name: s.name,
+          chaptersCount: s.chapters.length,
+          chapters: s.chapters.map((ch) => ({
+            id: ch.id,
+            name: ch.name,
+            order: ch.order,
+            isFree: ch.isFree,
+          })),
+        })),
+      };
     }
   }
 
   const resolved = EntitlementService.resolveProductState(entitlements, product, context);
 
-  res.status(200).json({ product: resolved });
+  res.status(200).json({
+    product: {
+      ...resolved,
+      syllabus: syllabusDetails,
+    },
+  });
 });
 
 export default router;
