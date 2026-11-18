@@ -45,10 +45,11 @@ model User {
   password     String
   name         String?
   role         Role          @default(STUDENT)
-  orders       Order[]
-  entitlements Entitlement[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  orders          Order[]
+  entitlements    Entitlement[]
+  quizSubmissions QuizSubmission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
 // -------------------------------------------------------------
@@ -95,6 +96,7 @@ model Chapter {
   subjectId String
   subject   Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   materials Material[]
+  quiz      Quiz?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
@@ -201,4 +203,56 @@ model Entitlement {
 
   @@index([userId, scope, refId])
   @@index([userId, expiresAt])
+}
+
+// -------------------------------------------------------------
+// DPP & INTERACTIVE QUIZ ENGINE
+// -------------------------------------------------------------
+
+model Quiz {
+  id              String           @id @default(uuid())
+  title           String
+  description     String?
+  durationMinutes Int              @default(15)
+  totalMarks      Int              @default(10)
+  passingMarks    Int              @default(4)
+  chapterId       String           @unique
+  chapter         Chapter          @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  questions       QuizQuestion[]
+  submissions     QuizSubmission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model QuizQuestion {
+  id                 String   @id @default(uuid())
+  quizId             String
+  quiz               Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  order              Int      @default(1)
+  question           String
+  options            String[]
+  correctOptionIndex Int
+  explanation        String
+  marks              Int      @default(1)
+  negativeMarks      Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([quizId, order])
+}
+
+model QuizSubmission {
+  id               String   @id @default(uuid())
+  quizId           String
+  quiz             Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score            Int
+  totalMarks       Int
+  accuracy         Float
+  timeTakenSeconds Int
+  answers          Json     // Map of { [questionId]: selectedOptionIndex }
+  submittedAt      DateTime @default(now())
+
+  @@index([userId, quizId])
 }

@@ -791,6 +791,9 @@ async function main() {
   await prisma.order.deleteMany();
   await prisma.product.deleteMany();
   await prisma.coupon.deleteMany();
+  await prisma.quizSubmission.deleteMany();
+  await prisma.quizQuestion.deleteMany();
+  await prisma.quiz.deleteMany();
   await prisma.material.deleteMany();
   await prisma.chapter.deleteMany();
   await prisma.subject.deleteMany();
@@ -917,6 +920,8 @@ async function main() {
   let cbseClass12BiologySubjectPackProduct: any = null;
   let icseClass12MonthlyPassProduct: any = null;
   let maharashtraClass12PhysicsSubjectPackProduct: any = null;
+  let chemicalReactionsChapterId = '';
+  let realNumbersChapterId = '';
 
   for (const boardData of BOARDS_DATA) {
     const board = await prisma.board.create({
@@ -1010,6 +1015,12 @@ async function main() {
               subjectId: subjectRecord.id,
             },
           });
+
+          if (chapterRecord.name === 'Chemical Reactions and Equations' && board.name === 'CBSE') {
+            chemicalReactionsChapterId = chapterRecord.id;
+          } else if (chapterRecord.name === 'Real Numbers' && board.name === 'CBSE') {
+            realNumbersChapterId = chapterRecord.id;
+          }
 
           // Generate real PDF file on disk
           const cleanSlug = `${board.name.toLowerCase()}-${classRecord.name.toLowerCase().replace(/[^a-z0-9]/g, '')}-${subjectRecord.name.toLowerCase().replace(/[^a-z0-9]/g, '')}-ch${order - 1}`;
@@ -1380,6 +1391,260 @@ async function main() {
         },
       },
     });
+  }
+
+  // 6. Seed Realistic PW-Style DPP Quizzes with Questions & Explanations
+  console.log('📝 Seeding PW-Style Daily Practice Problems (DPP) & Quizzes...');
+
+  if (chemicalReactionsChapterId) {
+    await prisma.quiz.create({
+      data: {
+        chapterId: chemicalReactionsChapterId,
+        title: 'Chemical Reactions and Equations - DPP 01',
+        description: 'Daily Practice Problems covering Types of Reactions, Balancing Chemical Equations, Oxidation-Reduction, and Rancidity.',
+        durationMinutes: 15,
+        totalMarks: 10,
+        passingMarks: 4,
+        questions: {
+          create: [
+            {
+              order: 1,
+              question: 'Which of the following processes is an example of an exothermic reaction?',
+              options: [
+                'Respiration in living organisms',
+                'Photosynthesis in green plants',
+                'Electrolysis of water into hydrogen and oxygen',
+                'Thermal decomposition of calcium carbonate'
+              ],
+              correctOptionIndex: 0,
+              explanation: 'Respiration is an exothermic reaction because glucose combines with oxygen inside the cells of our body to release energy in the form of ATP: C6H12O6 + 6O2 -> 6CO2 + 6H2O + Energy.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 2,
+              question: 'When aqueous lead nitrate is mixed with potassium iodide solution, a precipitate is formed. What is the color of this precipitate?',
+              options: ['White', 'Yellow', 'Blue', 'Black'],
+              correctOptionIndex: 1,
+              explanation: 'Pb(NO3)2 (aq) + 2KI (aq) -> PbI2 (s) + 2KNO3 (aq). Lead iodide (PbI2) forms a brilliant yellow precipitate, making it a classic precipitation reaction.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 3,
+              question: 'The chemical reaction: Fe2O3 + 2Al -> Al2O3 + 2Fe is an example of a:',
+              options: [
+                'Combination reaction',
+                'Double displacement reaction',
+                'Decomposition reaction',
+                'Displacement reaction (Thermite process)'
+              ],
+              correctOptionIndex: 3,
+              explanation: 'Aluminum is more reactive than iron, so it displaces iron from iron(III) oxide. This highly exothermic reaction is called the Thermite reaction, used for welding railway tracks.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 4,
+              question: 'What happens when dilute hydrochloric acid is added to iron filings in a test tube?',
+              options: [
+                'Hydrogen gas and iron(II) chloride are produced',
+                'Chlorine gas and iron hydroxide are produced',
+                'No reaction takes place',
+                'Iron salt and water are produced without gas evolution'
+              ],
+              correctOptionIndex: 0,
+              explanation: 'Fe (s) + 2HCl (aq) -> FeCl2 (aq) + H2 (g). Iron displaces hydrogen from the acid, producing hydrogen gas (which burns with a pop sound) and ferrous chloride.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 5,
+              question: 'In the balanced chemical equation: a Fe + b H2O -> c Fe3O4 + d H2, the stoichiometric coefficients a, b, c, d are:',
+              options: ['3, 4, 1, 4', '1, 1, 1, 1', '3, 2, 1, 2', '2, 4, 1, 4'],
+              correctOptionIndex: 0,
+              explanation: 'Balancing atoms: 3 Fe on both sides gives a=3, c=1. For 4 oxygen atoms in Fe3O4, we need 4 H2O (b=4), which in turn produces 4 H2 (d=4). Thus 3, 4, 1, 4.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 6,
+              question: 'Food items containing fats and oils develop an unpleasant smell and taste over time due to:',
+              options: ['Corrosion', 'Reduction', 'Oxidation (Rancidity)', 'Hydrogenation'],
+              correctOptionIndex: 2,
+              explanation: 'Rancidity is the slow oxidation of fats and oils in food when exposed to atmospheric oxygen, altering the odor and flavor of the food.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 7,
+              question: 'Which unreactive gas is flushed into packets of potato chips to prevent rancidity?',
+              options: ['Oxygen', 'Nitrogen', 'Carbon dioxide', 'Chlorine'],
+              correctOptionIndex: 1,
+              explanation: 'Nitrogen gas is an inert gas that creates an oxygen-free environment inside chip packets, preventing oxidative degradation of oils and fats.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 8,
+              question: "A white substance 'X' used for whitewashing walls is obtained by heating limestone in a kiln. 'X' is:",
+              options: [
+                'Calcium carbonate (CaCO3)',
+                'Calcium oxide / Quicklime (CaO)',
+                'Calcium hydroxide / Slaked lime (Ca(OH)2)',
+                'Calcium sulfate (CaSO4)'
+              ],
+              correctOptionIndex: 1,
+              explanation: 'Limestone (CaCO3) undergoes thermal decomposition to produce Quicklime (CaO) and CO2. CaO vigorously reacts with water to form slaked lime Ca(OH)2 used on walls.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 9,
+              question: 'When green ferrous sulphate crystals (FeSO4.7H2O) are heated strongly, the burning sulfur smell is due to:',
+              options: [
+                'Hydrogen sulfide (H2S)',
+                'Sulfur dioxide (SO2) and Sulfur trioxide (SO3)',
+                'Oxygen gas',
+                'Nitrogen dioxide'
+              ],
+              correctOptionIndex: 1,
+              explanation: '2FeSO4 (s) -> Fe2O3 (s) + SO2 (g) + SO3 (g). The pungent, suffocating smell of burning sulfur is produced by SO2 and SO3 gases.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 10,
+              question: 'Chemically, rust on iron objects is best described as:',
+              options: [
+                'Hydrated ferric oxide (Fe2O3 . xH2O)',
+                'Ferrous oxide (FeO)',
+                'Ferric carbonate (FeCO3)',
+                'Ferrous sulfide (FeS)'
+              ],
+              correctOptionIndex: 0,
+              explanation: 'Rust is reddish-brown hydrated iron(III) oxide (Fe2O3 . xH2O) formed in the presence of both oxygen and moisture.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+          ],
+        },
+      },
+    });
+    console.log('  🎯 Created DPP for Chapter: Chemical Reactions and Equations (10 Questions)');
+  }
+
+  if (realNumbersChapterId) {
+    await prisma.quiz.create({
+      data: {
+        chapterId: realNumbersChapterId,
+        title: 'Real Numbers - Daily Practice Problems (DPP 01)',
+        description: 'Practice test on Fundamental Theorem of Arithmetic, HCF/LCM relations, and proofs of irrationality.',
+        durationMinutes: 15,
+        totalMarks: 10,
+        passingMarks: 4,
+        questions: {
+          create: [
+            {
+              order: 1,
+              question: 'According to the Fundamental Theorem of Arithmetic, every composite number can be expressed as a product of:',
+              options: [
+                'Even numbers only',
+                'Odd numbers only',
+                'Primes uniquely, apart from the order of factors',
+                'Composite numbers uniquely'
+              ],
+              correctOptionIndex: 2,
+              explanation: 'The Fundamental Theorem of Arithmetic states that every composite number can be uniquely expressed as a product of primes, up to the rearrangement of its prime factors.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 2,
+              question: 'If two positive integers a and b are written as a = x^3 y^2 and b = x y^3, where x, y are prime numbers, then HCF(a, b) is:',
+              options: ['x y', 'x y^2', 'x^3 y^3', 'x^2 y^2'],
+              correctOptionIndex: 1,
+              explanation: 'HCF is the product of the smallest power of each common prime factor involved: min power of x is 1, min power of y is 2. Hence HCF = x y^2.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 3,
+              question: 'The product of a non-zero rational number and an irrational number is:',
+              options: ['Always rational', 'Always irrational', 'Rational or irrational', 'Zero'],
+              correctOptionIndex: 1,
+              explanation: 'If r is a non-zero rational number and s is irrational, their product r * s is always irrational.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 4,
+              question: 'The LCM of two numbers is 1200. Which of the following CANNOT be their HCF?',
+              options: ['600', '500', '400', '200'],
+              correctOptionIndex: 1,
+              explanation: 'The HCF of two numbers must always divide their LCM completely. 1200 is divisible by 600, 400, and 200, but 1200 / 500 = 2.4, which is not an integer. Hence 500 cannot be HCF.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 5,
+              question: 'If HCF(306, 657) = 9, what is LCM(306, 657)?',
+              options: ['22338', '21338', '23338', '22438'],
+              correctOptionIndex: 0,
+              explanation: 'Using the fundamental relation: HCF * LCM = a * b => LCM = (306 * 657) / 9 = 34 * 657 = 22338.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 6,
+              question: 'The decimal expansion of 17 / 8 will terminate after how many decimal places?',
+              options: ['1 decimal place', '2 decimal places', '3 decimal places', 'Non-terminating repeating'],
+              correctOptionIndex: 2,
+              explanation: 'Denominator 8 = 2^3. The number of decimal places after which the decimal expansion terminates is determined by the highest power of 2 or 5, which is 3 (17 / 8 = 2.125).',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 7,
+              question: 'Which of the following is an irrational number?',
+              options: ['sqrt(4)', 'sqrt(9)', 'sqrt(7)', 'sqrt(16)'],
+              correctOptionIndex: 2,
+              explanation: '7 is a prime number and not a perfect square, so sqrt(7) is irrational. The others simplify to integers 2, 3, and 4.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 8,
+              question: 'The largest number which divides 70 and 125, leaving remainders 5 and 8 respectively, is:',
+              options: ['13', '65', '875', '1750'],
+              correctOptionIndex: 0,
+              explanation: 'Required number is HCF(70 - 5, 125 - 8) = HCF(65, 117). 65 = 13 * 5 and 117 = 13 * 9. Thus HCF = 13.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 9,
+              question: 'For some integer m, every even integer is of the form:',
+              options: ['m', 'm + 1', '2m', '2m + 1'],
+              correctOptionIndex: 2,
+              explanation: 'By definition, every even integer is divisible by 2 and can be represented in the form 2m, where m is an integer.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+            {
+              order: 10,
+              question: 'Let p be a prime number. If p divides a^2 (where a is a positive integer), then:',
+              options: ['p divides a', 'a divides p', 'p does not divide a', 'p^2 divides a'],
+              correctOptionIndex: 0,
+              explanation: 'By the Fundamental Theorem of Arithmetic Corollary: If a prime p divides a^2, then p must divide a.',
+              marks: 1,
+              negativeMarks: 0,
+            },
+          ],
+        },
+      },
+    });
+    console.log('  🎯 Created DPP for Chapter: Real Numbers (10 Questions)');
   }
 
   console.log('✅ Seed completed successfully with full rich data!');

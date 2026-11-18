@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Layers,
   Calendar,
+  Award,
 } from 'lucide-react';
 import { Board, ClassLevel, ProductInfo } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -466,6 +467,16 @@ export const CataloguePage: React.FC = () => {
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition"
                           >
                             <BookOpen className="w-3.5 h-3.5" /> Read PDF
+                          </Link>
+                        )}
+
+                        {/* Practice DPP Button */}
+                        {(chapter.isFree || chapter.state === 'OWNED') && (
+                          <Link
+                            to={`/dpp/${chapter.id}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-600 hover:text-white border border-purple-200 text-xs font-bold transition shadow-xs"
+                          >
+                            <Award className="w-3.5 h-3.5" /> Practice DPP
                           </Link>
                         )}
 

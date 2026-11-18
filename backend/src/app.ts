@@ -11,6 +11,7 @@ import checkoutRoutes from './routes/checkout.routes';
 import paymentRoutes from './routes/payment.routes';
 import webhookRoutes from './routes/webhook.routes';
 import orderRoutes from './routes/order.routes';
+import quizRoutes from './routes/quiz.routes';
 import { requireAuth, requireRole } from './middleware/auth';
 
 export const app: Application = express();
@@ -66,6 +67,10 @@ app.use('/payments', paymentRoutes);
 // Order status polling routes (supports /orders and /api/orders)
 app.use('/api/orders', orderRoutes);
 app.use('/orders', orderRoutes);
+
+// DPP and interactive quiz routes (supports /quizzes and /api/quizzes)
+app.use('/api/quizzes', quizRoutes);
+app.use('/quizzes', quizRoutes);
 
 
 

@@ -8,6 +8,7 @@ import { CartPage } from './pages/CartPage';
 import { OrderStatusPage } from './pages/OrderStatusPage';
 import { MyLibraryPage } from './pages/MyLibraryPage';
 import { PDFReaderPage } from './pages/PDFReaderPage';
+import { DPPTestPage } from './pages/DPPTestPage';
 import { AuthPage } from './pages/AuthPage';
 import { AdminOrdersPage } from './pages/AdminOrdersPage';
 import { AdminCataloguePage } from './pages/AdminCataloguePage';
@@ -43,6 +44,9 @@ export default function App() {
 
                 {/* Authenticated PDF Reader */}
                 <Route path="/reader/:materialId" element={<PDFReaderPage />} />
+
+                {/* PW-Style Daily Practice Problems (DPP) & Interactive Quiz */}
+                <Route path="/dpp/:chapterId" element={<DPPTestPage />} />
 
                 {/* Admin-only Catalogue CMS & Orders Management */}
                 <Route path="/admin/catalogue" element={<AdminCataloguePage />} />

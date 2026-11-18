@@ -8,7 +8,8 @@ import {
   ChevronRight,
   Clock,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Award
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -268,6 +269,14 @@ export const MyLibraryPage: React.FC = () => {
                       ) : (
                         <span className="text-xs text-gray-400">No PDF uploaded</span>
                       )}
+
+                      <Link
+                        to={`/dpp/${ch.id}`}
+                        className="px-3.5 py-2 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 font-bold text-xs rounded-xl border border-purple-200 transition flex items-center gap-1.5 shadow-xs"
+                      >
+                        <Award className="w-3.5 h-3.5" />
+                        <span>Practice DPP</span>
+                      </Link>
                     </div>
                   </div>
                 ))}
