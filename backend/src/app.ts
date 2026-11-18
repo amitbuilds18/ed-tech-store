@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { Role } from '@prisma/client';
 import authRoutes from './routes/auth.routes';
+import adminRoutes from './routes/admin.routes';
 import { requireAuth, requireRole } from './middleware/auth';
 
 export const app: Application = express();
@@ -27,11 +28,15 @@ app.get('/api/health', (_req: Request, res: Response) => {
 // Authentication routes (signup, login, logout, me)
 app.use('/api/auth', authRoutes);
 
-// Admin route example to verify requireRole('ADMIN') - returns 403 for students
+// Admin catalogue management & materials upload routes
+app.use('/api/admin', adminRoutes);
+
+// Admin dashboard route
 app.get('/api/admin/dashboard', requireAuth, requireRole(Role.ADMIN), (req: Request, res: Response) => {
   res.status(200).json({
     message: 'Welcome to Admin Dashboard',
     admin: req.user,
   });
 });
+
 
