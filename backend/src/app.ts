@@ -7,6 +7,7 @@ import adminRoutes from './routes/admin.routes';
 import catalogueRoutes from './routes/catalogue.routes';
 import materialRoutes from './routes/material.routes';
 import libraryRoutes from './routes/library.routes';
+import checkoutRoutes from './routes/checkout.routes';
 import { requireAuth, requireRole } from './middleware/auth';
 
 export const app: Application = express();
@@ -44,6 +45,11 @@ app.use('/materials', materialRoutes);
 // Student library routes (supports /library and /api/library)
 app.use('/api/library', libraryRoutes);
 app.use('/library', libraryRoutes);
+
+// Checkout and Razorpay order creation routes (supports /checkout and /api/checkout)
+app.use('/api/checkout', checkoutRoutes);
+app.use('/checkout', checkoutRoutes);
+
 
 
 
