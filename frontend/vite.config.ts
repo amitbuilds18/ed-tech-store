@@ -10,6 +10,26 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
       },
+      '/orders': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+      '/materials': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+      '/library': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+      '/checkout': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+      '/payments': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
     },
   },
 });

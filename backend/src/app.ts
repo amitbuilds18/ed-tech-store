@@ -8,6 +8,9 @@ import catalogueRoutes from './routes/catalogue.routes';
 import materialRoutes from './routes/material.routes';
 import libraryRoutes from './routes/library.routes';
 import checkoutRoutes from './routes/checkout.routes';
+import paymentRoutes from './routes/payment.routes';
+import webhookRoutes from './routes/webhook.routes';
+import orderRoutes from './routes/order.routes';
 import { requireAuth, requireRole } from './middleware/auth';
 
 export const app: Application = express();
@@ -18,6 +21,11 @@ app.use(cors({
   credentials: true,
 }));
 app.use(cookieParser());
+
+// Webhook routes mounted BEFORE express.json() so express.raw() can capture raw body
+app.use('/api/webhooks', webhookRoutes);
+app.use('/webhooks', webhookRoutes);
+
 app.use(express.json());
 
 // Basic health check route
@@ -49,6 +57,14 @@ app.use('/library', libraryRoutes);
 // Checkout and Razorpay order creation routes (supports /checkout and /api/checkout)
 app.use('/api/checkout', checkoutRoutes);
 app.use('/checkout', checkoutRoutes);
+
+// Payment verification routes (supports /payments and /api/payments)
+app.use('/api/payments', paymentRoutes);
+app.use('/payments', paymentRoutes);
+
+// Order status polling routes (supports /orders and /api/orders)
+app.use('/api/orders', orderRoutes);
+app.use('/orders', orderRoutes);
 
 
 

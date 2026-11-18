@@ -1,51 +1,55 @@
-import { useEffect, useState } from 'react';
-import { BookOpen, CheckCircle, ShieldCheck } from 'lucide-react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
+import { Navbar } from './components/Navbar';
+import { CataloguePage } from './pages/CataloguePage';
+import { ProductDetailPage } from './pages/ProductDetailPage';
+import { CartPage } from './pages/CartPage';
+import { OrderStatusPage } from './pages/OrderStatusPage';
+import { MyLibraryPage } from './pages/MyLibraryPage';
+import { PDFReaderPage } from './pages/PDFReaderPage';
+import { AuthPage } from './pages/AuthPage';
 
 export default function App() {
-  const [backendStatus, setBackendStatus] = useState<string>('Checking...');
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then((res) => res.json())
-      .then((data) => setBackendStatus(data.status === 'ok' ? 'Connected' : 'Error'))
-      .catch(() => setBackendStatus('Backend unreachable'));
-  }, []);
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-gray-100 text-center">
-        <div className="w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
-          <BookOpen className="w-8 h-8" />
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Ed-Tech Platform</h1>
-        <p className="text-sm text-gray-500 mb-6">
-          Catalogue & Entitlements Engine is initialized.
-        </p>
+    <BrowserRouter>
+      <AuthProvider>
+        <CartProvider>
+          <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900 antialiased selection:bg-blue-600 selection:text-white">
+            <Navbar />
+            <main className="flex-1">
+              <Routes>
+                {/* Catalogue Browse & Search */}
+                <Route path="/" element={<CataloguePage />} />
+                <Route path="/catalogue" element={<Navigate to="/" replace />} />
 
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-            <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-green-500" /> Frontend
-            </span>
-            <span className="text-xs px-2.5 py-1 bg-green-100 text-green-700 rounded-full font-semibold">
-              Vite + React + Tailwind
-            </span>
-          </div>
+                {/* Product Detail Page (Owned / Upgrade / Buy states) */}
+                <Route path="/product/:id" element={<ProductDetailPage />} />
 
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-            <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-blue-500" /> Backend API
-            </span>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-              backendStatus === 'Connected'
-                ? 'bg-green-100 text-green-700'
-                : 'bg-yellow-100 text-yellow-700'
-            }`}>
-              {backendStatus}
-            </span>
+                {/* Shopping Cart with Coupon Field & 18% GST Breakdown */}
+                <Route path="/cart" element={<CartPage />} />
+
+                {/* Waiting for Payment & Order Status (3-second polling, Success & Failure with Retry) */}
+                <Route path="/orders/:orderId/status" element={<OrderStatusPage />} />
+
+                {/* Student Library with Expiry Dates */}
+                <Route path="/library" element={<MyLibraryPage />} />
+
+                {/* Authenticated PDF Reader */}
+                <Route path="/reader/:materialId" element={<PDFReaderPage />} />
+
+                {/* Login & Signup */}
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/login" element={<Navigate to="/auth" replace />} />
+                <Route path="/signup" element={<Navigate to="/auth" replace />} />
+
+                {/* Catch-all fallback */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </main>
           </div>
-        </div>
-      </div>
-    </div>
+        </CartProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
