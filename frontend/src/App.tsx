@@ -10,6 +10,7 @@ import { MyLibraryPage } from './pages/MyLibraryPage';
 import { PDFReaderPage } from './pages/PDFReaderPage';
 import { AuthPage } from './pages/AuthPage';
 import { AdminOrdersPage } from './pages/AdminOrdersPage';
+import { AdminCataloguePage } from './pages/AdminCataloguePage';
 import { InvoicePage } from './pages/InvoicePage';
 
 export default function App() {
@@ -43,8 +44,10 @@ export default function App() {
                 {/* Authenticated PDF Reader */}
                 <Route path="/reader/:materialId" element={<PDFReaderPage />} />
 
-                {/* Admin-only Orders Management & Payment Status */}
+                {/* Admin-only Catalogue CMS & Orders Management */}
+                <Route path="/admin/catalogue" element={<AdminCataloguePage />} />
                 <Route path="/admin/orders" element={<AdminOrdersPage />} />
+                <Route path="/admin" element={<Navigate to="/admin/catalogue" replace />} />
 
                 {/* Login & Signup */}
                 <Route path="/auth" element={<AuthPage />} />

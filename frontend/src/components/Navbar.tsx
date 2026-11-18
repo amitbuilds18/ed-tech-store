@@ -46,12 +46,20 @@ export const Navbar: React.FC = () => {
                 My Library
               </Link>
               {user?.role === 'ADMIN' && (
-                <Link
-                  to="/admin/orders"
-                  className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold bg-purple-100 hover:bg-purple-200 text-purple-700 transition"
-                >
-                  <Shield className="w-3.5 h-3.5" /> Admin Orders
-                </Link>
+                <>
+                  <Link
+                    to="/admin/catalogue"
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold bg-blue-100 hover:bg-blue-200 text-blue-700 transition"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" /> Catalogue CMS
+                  </Link>
+                  <Link
+                    to="/admin/orders"
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold bg-purple-100 hover:bg-purple-200 text-purple-700 transition"
+                  >
+                    <Shield className="w-3.5 h-3.5" /> Admin Orders
+                  </Link>
+                </>
               )}
             </nav>
           </div>
