@@ -40,8 +40,9 @@ app.get('/api/health', (_req: Request, res: Response) => {
 // Authentication routes (signup, login, logout, me)
 app.use('/api/auth', authRoutes);
 
-// Admin catalogue management & materials upload routes
+// Admin catalogue management & materials upload routes (supports /admin and /api/admin)
 app.use('/api/admin', adminRoutes);
+app.use('/admin', adminRoutes);
 
 // Student & Public catalogue browsing routes
 app.use('/api/catalogue', catalogueRoutes);

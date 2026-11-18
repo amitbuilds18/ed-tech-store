@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { Role, ProductType } from '@prisma/client';
+import { Role, ProductType, OrderStatus, Prisma } from '@prisma/client';
 import { prisma } from '../prisma';
 import { requireAuth, requireRole } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
@@ -603,6 +603,85 @@ router.delete('/products/:id', async (req: Request, res: Response): Promise<void
 
   await prisma.product.delete({ where: { id } });
   res.status(200).json({ message: 'Product deleted successfully' });
+});
+
+// =============================================================
+// ORDERS MANAGEMENT
+// =============================================================
+
+// GET /api/admin/orders - List orders with status and date range filters
+router.get('/orders', async (req: Request, res: Response): Promise<void> => {
+  const { status, startDate, endDate } = req.query;
+
+  const where: Prisma.OrderWhereInput = {};
+
+  // Status filter (CREATED, PAID, FAILED)
+  if (
+    status &&
+    typeof status === 'string' &&
+    Object.values(OrderStatus).includes(status as OrderStatus)
+  ) {
+    where.status = status as OrderStatus;
+  }
+
+  // Date range filter
+  if (startDate || endDate) {
+    where.createdAt = {};
+    if (startDate && typeof startDate === 'string') {
+      const parsedStart = new Date(startDate);
+      if (!isNaN(parsedStart.getTime())) {
+        where.createdAt.gte = parsedStart;
+      }
+    }
+    if (endDate && typeof endDate === 'string') {
+      const parsedEnd = new Date(endDate);
+      if (!isNaN(parsedEnd.getTime())) {
+        // If it's a date-only string like YYYY-MM-DD, set to end of day
+        if (endDate.length === 10) {
+          parsedEnd.setHours(23, 59, 59, 999);
+        }
+        where.createdAt.lte = parsedEnd;
+      }
+    }
+  }
+
+  const orders = await prisma.order.findMany({
+    where,
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+        },
+      },
+      items: {
+        include: {
+          product: {
+            select: {
+              id: true,
+              title: true,
+              type: true,
+              targetId: true,
+            },
+          },
+        },
+      },
+      payments: {
+        select: {
+          id: true,
+          razorpayPaymentId: true,
+          amountPaise: true,
+          status: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  res.status(200).json({ orders });
 });
 
 export default router;

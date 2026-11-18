@@ -46,9 +46,12 @@ export const Navbar: React.FC = () => {
                 My Library
               </Link>
               {user?.role === 'ADMIN' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
-                  <Shield className="w-3 h-3" /> Admin
-                </span>
+                <Link
+                  to="/admin/orders"
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold bg-purple-100 hover:bg-purple-200 text-purple-700 transition"
+                >
+                  <Shield className="w-3.5 h-3.5" /> Admin Orders
+                </Link>
               )}
             </nav>
           </div>

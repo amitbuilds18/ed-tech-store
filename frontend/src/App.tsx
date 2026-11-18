@@ -9,6 +9,8 @@ import { OrderStatusPage } from './pages/OrderStatusPage';
 import { MyLibraryPage } from './pages/MyLibraryPage';
 import { PDFReaderPage } from './pages/PDFReaderPage';
 import { AuthPage } from './pages/AuthPage';
+import { AdminOrdersPage } from './pages/AdminOrdersPage';
+import { InvoicePage } from './pages/InvoicePage';
 
 export default function App() {
   return (
@@ -32,11 +34,17 @@ export default function App() {
                 {/* Waiting for Payment & Order Status (3-second polling, Success & Failure with Retry) */}
                 <Route path="/orders/:orderId/status" element={<OrderStatusPage />} />
 
+                {/* Tax Invoice Page (Printable HTML with GST breakdown) */}
+                <Route path="/orders/:orderId/invoice" element={<InvoicePage />} />
+
                 {/* Student Library with Expiry Dates */}
                 <Route path="/library" element={<MyLibraryPage />} />
 
                 {/* Authenticated PDF Reader */}
                 <Route path="/reader/:materialId" element={<PDFReaderPage />} />
+
+                {/* Admin-only Orders Management & Payment Status */}
+                <Route path="/admin/orders" element={<AdminOrdersPage />} />
 
                 {/* Login & Signup */}
                 <Route path="/auth" element={<AuthPage />} />
