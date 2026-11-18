@@ -188,6 +188,10 @@ router.get('/subjects/:subjectId', async (req: Request, res: Response): Promise<
       classId
     );
 
+    // Rule: Do not offer a chapter if the user owns its subject pack or has an active class pass
+    const isCoveredByPackOrPass = access.ownedThrough === 'SUBJECT_PACK' || access.ownedThrough === 'CLASS_PASS';
+    const isOffered = !ch.isFree && !isCoveredByPackOrPass && access.state !== 'OWNED';
+
     return {
       id: ch.id,
       name: ch.name,
@@ -195,8 +199,7 @@ router.get('/subjects/:subjectId', async (req: Request, res: Response): Promise<
       isFree: ch.isFree,
       state: access.state,
       ownedThrough: access.ownedThrough,
-      // If chapter is owned through subject pack or class pass, it must NOT be offered individually
-      canPurchaseIndividually: access.state !== 'OWNED',
+      isOffered,
     };
   });
 
@@ -266,6 +269,13 @@ router.get('/chapters/:chapterId', async (req: Request, res: Response): Promise<
     );
   }
 
+  // Rule: Do not offer a chapter if the user owns its subject pack or has an active class pass
+  const isCoveredByPackOrPass = access.ownedThrough === 'SUBJECT_PACK' || access.ownedThrough === 'CLASS_PASS';
+  const isOffered = !chapter.isFree && !isCoveredByPackOrPass && access.state !== 'OWNED';
+
+  // Standalone product is offered ONLY if chapter is not free, not already owned, and not covered by a pack/pass
+  const offeredProduct = isOffered ? resolvedProduct : null;
+
   // Materials are accessible ONLY if chapter is free or user has OWNED access
   const canAccessMaterials = chapter.isFree || access.state === 'OWNED';
   const deliveredMaterials = canAccessMaterials
@@ -285,7 +295,8 @@ router.get('/chapters/:chapterId', async (req: Request, res: Response): Promise<
       subject: chapter.subject,
       state: access.state,
       ownedThrough: access.ownedThrough,
-      product: resolvedProduct,
+      isOffered,
+      product: offeredProduct,
       materials: deliveredMaterials,
       materialsLocked: !canAccessMaterials,
     },
