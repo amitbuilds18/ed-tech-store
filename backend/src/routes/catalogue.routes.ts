@@ -90,10 +90,13 @@ router.get('/classes/:classId', async (req: Request, res: Response): Promise<voi
     include: {
       board: true,
       subjects: {
-        select: {
-          id: true,
-          name: true,
-          _count: { select: { chapters: true } },
+        include: {
+          chapters: {
+            include: {
+              materials: { select: { id: true, title: true } },
+            },
+            orderBy: { order: 'asc' },
+          },
         },
       },
     },
@@ -117,16 +120,93 @@ router.get('/classes/:classId', async (req: Request, res: Response): Promise<voi
     EntitlementService.resolveProductState(entitlements, prod, {})
   );
 
+  // Collect all subject IDs and chapter IDs in this class
+  const subjectIds = classItem.subjects.map((s) => s.id);
+  const chapterIds = classItem.subjects.flatMap((s) => s.chapters.map((c) => c.id));
+
+  // Fetch subject pack and chapter products
+  const [subjectPackProducts, chapterProducts] = await Promise.all([
+    prisma.product.findMany({
+      where: {
+        targetId: { in: subjectIds },
+        type: ProductType.SUBJECT_PACK,
+        active: true,
+      },
+    }),
+    prisma.product.findMany({
+      where: {
+        targetId: { in: chapterIds },
+        type: ProductType.CHAPTER,
+        active: true,
+      },
+    }),
+  ]);
+
+  const resolvedSubjects = classItem.subjects.map((subject) => {
+    const subjectPackProd = subjectPackProducts.find((p) => p.targetId === subject.id);
+    const subjChapterIds = subject.chapters.map((c) => c.id);
+
+    let resolvedSubjectProduct = null;
+    if (subjectPackProd) {
+      resolvedSubjectProduct = EntitlementService.resolveProductState(
+        entitlements,
+        subjectPackProd,
+        {
+          subjectClassId: classId,
+          subjectChapterIds: subjChapterIds,
+        }
+      );
+    }
+
+    const resolvedChapters = subject.chapters.map((ch) => {
+      const access = EntitlementService.resolveChapterAccess(entitlements, ch, classId);
+      const isCoveredByPackOrPass =
+        access.ownedThrough === 'SUBJECT_PACK' || access.ownedThrough === 'CLASS_PASS';
+      const isOffered = !ch.isFree && !isCoveredByPackOrPass && access.state !== 'OWNED';
+
+      const chProduct = chapterProducts.find((p) => p.targetId === ch.id);
+      let resolvedChapterProduct = null;
+      if (chProduct) {
+        resolvedChapterProduct = {
+          ...EntitlementService.resolveProductState(entitlements, chProduct, {
+            chapterSubjectId: subject.id,
+            chapterClassId: classId,
+          }),
+          isOffered,
+        };
+      }
+
+      return {
+        id: ch.id,
+        title: ch.name,
+        name: ch.name,
+        orderIndex: ch.order,
+        order: ch.order,
+        isFree: ch.isFree,
+        state: access.state,
+        ownedThrough: access.ownedThrough,
+        isOffered,
+        materials: ch.materials,
+        product: resolvedChapterProduct,
+      };
+    });
+
+    return {
+      id: subject.id,
+      name: subject.name,
+      chapterCount: subject.chapters.length,
+      product: resolvedSubjectProduct,
+      state: resolvedSubjectProduct?.state || 'BUY',
+      chapters: resolvedChapters,
+    };
+  });
+
   res.status(200).json({
     class: {
       id: classItem.id,
       name: classItem.name,
       board: classItem.board,
-      subjects: classItem.subjects.map((s) => ({
-        id: s.id,
-        name: s.name,
-        chapterCount: s._count.chapters,
-      })),
+      subjects: resolvedSubjects,
       passes: resolvedPasses,
     },
   });
@@ -381,6 +461,56 @@ router.get('/search', async (req: Request, res: Response): Promise<void> => {
       chapters: resolvedChapters,
     },
   });
+});
+
+// -------------------------------------------------------------
+// GET /api/catalogue/products/:productId - Public product detail with resolved state
+// -------------------------------------------------------------
+router.get('/products/:productId', async (req: Request, res: Response): Promise<void> => {
+  const productId = getParam(req.params.productId);
+  const entitlements = await getActiveEntitlements(req);
+
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+  });
+
+  if (!product || !product.active) {
+    res.status(404).json({ error: 'Product not found or inactive' });
+    return;
+  }
+
+  let context: any = {};
+
+  if (product.type === ProductType.CHAPTER) {
+    const chapter = await prisma.chapter.findUnique({
+      where: { id: product.targetId },
+      include: { subject: { select: { id: true, classId: true } } },
+    });
+    if (chapter) {
+      context = {
+        chapterSubjectId: chapter.subject.id,
+        chapterClassId: chapter.subject.classId,
+      };
+    }
+  } else if (product.type === ProductType.SUBJECT_PACK) {
+    const subject = await prisma.subject.findUnique({
+      where: { id: product.targetId },
+      include: {
+        class: { select: { id: true } },
+        chapters: { select: { id: true } },
+      },
+    });
+    if (subject) {
+      context = {
+        subjectClassId: subject.class.id,
+        subjectChapterIds: subject.chapters.map((c) => c.id),
+      };
+    }
+  }
+
+  const resolved = EntitlementService.resolveProductState(entitlements, product, context);
+
+  res.status(200).json({ product: resolved });
 });
 
 export default router;

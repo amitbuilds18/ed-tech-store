@@ -32,17 +32,21 @@ export const CataloguePage: React.FC = () => {
   useEffect(() => {
     fetch('/api/catalogue/boards', { credentials: 'include' })
       .then((res) => res.json())
-      .then((data: Board[]) => {
-        setBoards(data);
-        if (data.length > 0) {
-          setSelectedBoardId(data[0].id);
-          if (data[0].classes && data[0].classes.length > 0) {
-            setClasses(data[0].classes);
-            setSelectedClassId(data[0].classes[0].id);
+      .then((data: any) => {
+        const boardList: Board[] = Array.isArray(data) ? data : data.boards || [];
+        setBoards(boardList);
+        if (boardList.length > 0) {
+          setSelectedBoardId(boardList[0].id);
+          if (boardList[0].classes && boardList[0].classes.length > 0) {
+            setClasses(boardList[0].classes);
+            setSelectedClassId(boardList[0].classes[0].id);
           }
         }
       })
-      .catch((err) => console.error('Failed to load boards:', err));
+      .catch((err) => {
+        console.error('Failed to load boards:', err);
+        setBoards([]);
+      });
   }, [user]);
 
   // 2. Load Selected Class Details (subjects, chapters, passes with states)
@@ -51,8 +55,9 @@ export const CataloguePage: React.FC = () => {
 
     fetch(`/api/catalogue/classes/${selectedClassId}`, { credentials: 'include' })
       .then((res) => res.json())
-      .then((data: ClassLevel) => {
-        setClassData(data);
+      .then((data: any) => {
+        const classObj: ClassLevel = data.class || data;
+        setClassData(classObj);
       })
       .catch((err) => console.error('Failed to load class data:', err));
   }, [selectedClassId, user]);
@@ -69,8 +74,12 @@ export const CataloguePage: React.FC = () => {
         credentials: 'include',
       })
         .then((res) => res.json())
-        .then((data) => {
-          setSearchResults(data);
+        .then((data: any) => {
+          const resObj = data.results || data;
+          setSearchResults({
+            chapters: resObj.chapters || [],
+            subjects: resObj.subjects || [],
+          });
         })
         .catch((err) => console.error('Search error:', err));
     }, 300);
@@ -80,7 +89,7 @@ export const CataloguePage: React.FC = () => {
 
   const handleBoardChange = (boardId: string) => {
     setSelectedBoardId(boardId);
-    const b = boards.find((x) => x.id === boardId);
+    const b = (boards || []).find((x) => x.id === boardId);
     if (b && b.classes && b.classes.length > 0) {
       setClasses(b.classes);
       setSelectedClassId(b.classes[0].id);
@@ -90,6 +99,7 @@ export const CataloguePage: React.FC = () => {
       setClassData(null);
     }
   };
+
 
   const formatPrice = (paise?: number) => {
     if (paise === undefined || paise === null) return '₹0';
@@ -228,7 +238,7 @@ export const CataloguePage: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-white p-4 sm:p-6 rounded-2xl border border-gray-200 shadow-sm">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2">Board:</span>
-              {boards.map((b) => (
+              {(boards || []).map((b) => (
                 <button
                   key={b.id}
                   onClick={() => handleBoardChange(b.id)}
@@ -245,7 +255,7 @@ export const CataloguePage: React.FC = () => {
 
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2">Class:</span>
-              {classes.map((c) => (
+              {(classes || []).map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setSelectedClassId(c.id)}

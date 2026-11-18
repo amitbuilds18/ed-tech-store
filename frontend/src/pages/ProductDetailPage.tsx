@@ -27,16 +27,15 @@ export const ProductDetailPage: React.FC = () => {
     if (!id) return;
 
     setLoading(true);
-    // Find product from admin/catalogue products
-    fetch(`/api/admin/products`, { credentials: 'include' })
+    fetch(`/api/catalogue/products/${id}`, { credentials: 'include' })
       .then((res) => {
-        if (!res.ok) throw new Error('Failed to load products');
+        if (!res.ok) throw new Error('Product not found or inactive');
         return res.json();
       })
-      .then((products: ProductInfo[]) => {
-        const found = products.find((p) => p.id === id);
-        if (found) {
-          setProduct(found);
+      .then((data: any) => {
+        const prod = data.product || data;
+        if (prod) {
+          setProduct(prod);
         } else {
           setError('Product not found or inactive');
         }
