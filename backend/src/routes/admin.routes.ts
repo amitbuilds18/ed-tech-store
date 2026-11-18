@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { Role } from '@prisma/client';
+import { Role, ProductType } from '@prisma/client';
 import { prisma } from '../prisma';
 import { requireAuth, requireRole } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
@@ -16,6 +16,7 @@ import {
   createChapterSchema,
   updateChapterSchema,
 } from '../schemas/catalogue.schema';
+import { createProductSchema, updateProductSchema } from '../schemas/product.schema';
 
 const router = Router();
 
@@ -484,4 +485,125 @@ router.delete('/materials/:id', async (req: Request, res: Response): Promise<voi
   res.status(200).json({ message: 'Material deleted successfully' });
 });
 
+// =============================================================
+// PRODUCTS CRUD & PRICING MANAGEMENT
+// =============================================================
+
+// GET /api/admin/products - List all products with optional filters
+router.get('/products', async (req: Request, res: Response): Promise<void> => {
+  const type = req.query.type as ProductType | undefined;
+  const targetId = req.query.targetId as string | undefined;
+  const activeStr = req.query.active as string | undefined;
+
+  const where: any = {};
+  if (type) where.type = type;
+  if (targetId) where.targetId = targetId;
+  if (activeStr !== undefined) where.active = activeStr === 'true';
+
+  const products = await prisma.product.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+  });
+
+  res.status(200).json({ products });
+});
+
+// GET /api/admin/products/:id - Get single product
+router.get('/products/:id', async (req: Request, res: Response): Promise<void> => {
+  const id = getParam(req.params.id);
+
+  const product = await prisma.product.findUnique({
+    where: { id },
+  });
+
+  if (!product) {
+    res.status(404).json({ error: 'Product not found' });
+    return;
+  }
+
+  res.status(200).json({ product });
+});
+
+// POST /api/admin/products - Create a new product
+router.post('/products', validateBody(createProductSchema), async (req: Request, res: Response): Promise<void> => {
+  const { title, type, targetId, pricePaise, active } = req.body;
+
+  // Validate targetId references an existing entity based on product type
+  if (type === ProductType.CHAPTER) {
+    const chapterExists = await prisma.chapter.findUnique({ where: { id: targetId } });
+    if (!chapterExists) {
+      res.status(404).json({ error: 'Referenced Chapter does not exist' });
+      return;
+    }
+  } else if (type === ProductType.SUBJECT_PACK) {
+    const subjectExists = await prisma.subject.findUnique({ where: { id: targetId } });
+    if (!subjectExists) {
+      res.status(404).json({ error: 'Referenced Subject does not exist' });
+      return;
+    }
+  } else if (type === ProductType.MONTHLY_PASS || type === ProductType.ANNUAL_PASS) {
+    const classExists = await prisma.class.findUnique({ where: { id: targetId } });
+    if (!classExists) {
+      res.status(404).json({ error: 'Referenced Class does not exist' });
+      return;
+    }
+  }
+
+  const product = await prisma.product.create({
+    data: {
+      title,
+      type,
+      targetId,
+      pricePaise,
+      active: active !== undefined ? active : true,
+    },
+  });
+
+  res.status(201).json({
+    message: 'Product created successfully',
+    product,
+  });
+});
+
+// PUT /api/admin/products/:id - Update product title, price, or active status
+router.put('/products/:id', validateBody(updateProductSchema), async (req: Request, res: Response): Promise<void> => {
+  const id = getParam(req.params.id);
+  const { title, pricePaise, active } = req.body;
+
+  const product = await prisma.product.findUnique({ where: { id } });
+  if (!product) {
+    res.status(404).json({ error: 'Product not found' });
+    return;
+  }
+
+  const updated = await prisma.product.update({
+    where: { id },
+    data: {
+      ...(title !== undefined && { title }),
+      ...(pricePaise !== undefined && { pricePaise }),
+      ...(active !== undefined && { active }),
+    },
+  });
+
+  res.status(200).json({
+    message: 'Product updated successfully',
+    product: updated,
+  });
+});
+
+// DELETE /api/admin/products/:id - Delete product
+router.delete('/products/:id', async (req: Request, res: Response): Promise<void> => {
+  const id = getParam(req.params.id);
+
+  const product = await prisma.product.findUnique({ where: { id } });
+  if (!product) {
+    res.status(404).json({ error: 'Product not found' });
+    return;
+  }
+
+  await prisma.product.delete({ where: { id } });
+  res.status(200).json({ message: 'Product deleted successfully' });
+});
+
 export default router;
+

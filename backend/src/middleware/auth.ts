@@ -39,3 +39,21 @@ export function requireRole(...allowedRoles: Role[]) {
     next();
   };
 }
+
+// Middleware to attach user if logged in, but allow unauthenticated guests to proceed
+export function optionalAuth(req: Request, _res: Response, next: NextFunction): void {
+  const token = req.cookies?.token;
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as AuthUser;
+      req.user = decoded;
+    } catch {
+      // Ignore invalid token for optional auth
+      req.user = undefined;
+    }
+  }
+
+  next();
+}
+

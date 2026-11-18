@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import { Role } from '@prisma/client';
 import authRoutes from './routes/auth.routes';
 import adminRoutes from './routes/admin.routes';
+import catalogueRoutes from './routes/catalogue.routes';
 import { requireAuth, requireRole } from './middleware/auth';
 
 export const app: Application = express();
@@ -30,6 +31,10 @@ app.use('/api/auth', authRoutes);
 
 // Admin catalogue management & materials upload routes
 app.use('/api/admin', adminRoutes);
+
+// Student & Public catalogue browsing routes
+app.use('/api/catalogue', catalogueRoutes);
+
 
 // Admin dashboard route
 app.get('/api/admin/dashboard', requireAuth, requireRole(Role.ADMIN), (req: Request, res: Response) => {
