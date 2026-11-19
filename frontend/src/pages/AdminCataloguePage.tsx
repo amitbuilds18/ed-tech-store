@@ -11,7 +11,6 @@ import {
   ExternalLink,
   RotateCcw,
   Layers,
-  AlertTriangle,
   X,
   FileText,
   DollarSign
@@ -20,7 +19,12 @@ import { useAuth } from '../context/AuthContext';
 import { Board, ClassLevel, Subject, Chapter, ProductInfo } from '../types';
 
 export const AdminCataloguePage: React.FC = () => {
-  const { isAdmin, loading: authLoading } = useAuth();
+  const { isAdmin, user, login, loading: authLoading } = useAuth();
+
+  const [adminEmail, setAdminEmail] = useState<string>('admin@test.com');
+  const [adminPassword, setAdminPassword] = useState<string>('admin123');
+  const [adminLoginLoading, setAdminLoginLoading] = useState<boolean>(false);
+  const [adminLoginError, setAdminLoginError] = useState<string | null>(null);
 
   const [boards, setBoards] = useState<Board[]>([]);
   const [selectedBoardId, setSelectedBoardId] = useState<string>('');
@@ -440,20 +444,79 @@ export const AdminCataloguePage: React.FC = () => {
   }
 
   if (!isAdmin) {
+    const handleAdminSignIn = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setAdminLoginLoading(true);
+      setAdminLoginError(null);
+      const res = await login(adminEmail, adminPassword);
+      if (!res.success) {
+        setAdminLoginError(res.error || 'Invalid administrator credentials');
+      }
+      setAdminLoginLoading(false);
+    };
+
     return (
-      <div className="max-w-md mx-auto px-4 py-20 text-center">
-        <div className="p-8 bg-white rounded-3xl border border-gray-200 shadow-sm">
-          <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-3" />
-          <h2 className="text-xl font-bold text-gray-900">Administrator Access Required</h2>
-          <p className="text-sm text-gray-500 mt-2">
-            You must be signed in as an administrator to access the course catalogue builder.
-          </p>
-          <Link
-            to="/auth"
-            className="mt-6 inline-block px-5 py-2.5 bg-blue-600 text-white font-semibold text-xs rounded-xl shadow-sm hover:bg-blue-700 transition"
-          >
-            Sign In as Admin
-          </Link>
+      <div className="max-w-md mx-auto px-4 py-20">
+        <div className="bg-white rounded-3xl border border-gray-200 shadow-xl p-8 space-y-6">
+          <div className="text-center space-y-2">
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+              <Shield className="w-7 h-7" />
+            </div>
+            <h2 className="text-2xl font-black text-gray-900">Admin Portal Sign In</h2>
+            <p className="text-xs text-gray-500">
+              {user
+                ? `Currently signed in as "${user.name || user.email}" (Student). Sign in with admin credentials to access the CMS.`
+                : 'Sign in with administrator credentials to manage courses, chapters, and materials.'}
+            </p>
+          </div>
+
+          {adminLoginError && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium">
+              {adminLoginError}
+            </div>
+          )}
+
+          <form onSubmit={handleAdminSignIn} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Admin Email</label>
+              <input
+                type="email"
+                required
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium"
+                placeholder="admin@test.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Password</label>
+              <input
+                type="password"
+                required
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+                placeholder="••••••••"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={adminLoginLoading}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm rounded-xl shadow-md shadow-blue-200 transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            >
+              {adminLoginLoading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <span>Sign In to Admin Portal</span>
+              )}
+            </button>
+          </form>
+
+          <div className="pt-2 text-center text-xs text-gray-400 border-t border-gray-100">
+            Default Credentials: <span className="font-semibold text-gray-600">admin@test.com</span> / <span className="font-semibold text-gray-600">admin123</span>
+          </div>
         </div>
       </div>
     );

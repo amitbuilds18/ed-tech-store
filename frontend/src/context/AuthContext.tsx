@@ -4,10 +4,11 @@ import { User } from '../types';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signup: (email: string, password: string, name?: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; user?: User }>;
+  signup: (email: string, password: string, name?: string, role?: 'STUDENT' | 'ADMIN') => Promise<{ success: boolean; error?: string; user?: User }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  loginAsAdmin: () => Promise<boolean>;
   isAuthenticated: boolean;
   isAdmin: boolean;
 }
@@ -58,19 +59,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       setUser(data.user);
-      return { success: true };
+      return { success: true, user: data.user };
     } catch (err: any) {
       return { success: false, error: err.message || 'Network error during login' };
     }
   };
 
-  const signup = async (email: string, password: string, name?: string) => {
+  const signup = async (email: string, password: string, name?: string, role: 'STUDENT' | 'ADMIN' = 'STUDENT') => {
     try {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify({ email, password, name, role }),
       });
 
       const data = await res.json();
@@ -79,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       setUser(data.user);
-      return { success: true };
+      return { success: true, user: data.user };
     } catch (err: any) {
       return { success: false, error: err.message || 'Network error during signup' };
     }
@@ -102,6 +103,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await fetchMe();
   };
 
+  const loginAsAdmin = async (): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/auth/dev-admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -111,6 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signup,
         logout,
         refreshUser,
+        loginAsAdmin,
         isAuthenticated: !!user,
         isAdmin: user?.role === 'ADMIN',
       }}

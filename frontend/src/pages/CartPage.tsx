@@ -116,6 +116,7 @@ export const CartPage: React.FC = () => {
         prefill: {
           email: user?.email || '',
           name: user?.name || '',
+          contact: '', // Leave contact empty to prevent Razorpay 1-Click login OTP lock
         },
         theme: {
           color: '#2563EB', // Blue-600
@@ -157,6 +158,53 @@ export const CartPage: React.FC = () => {
       razorpayInstance.open();
     } catch (err: any) {
       setCheckoutError(err.message || 'Error processing checkout');
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  // ⚡ 1-Click Instant Test Mode Payment Simulation (Bypasses Razorpay popup & OTP)
+  const handleDevSimulatePayment = async () => {
+    if (!isAuthenticated) {
+      navigate('/auth', { state: { from: { pathname: '/cart' } } });
+      return;
+    }
+    if (items.length === 0) return;
+
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+
+    try {
+      // 1. Create order on backend
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          items: items.map((i) => ({ productId: i.productId })),
+          couponCode: appliedCoupon || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to initialize order');
+
+      // 2. Simulate settlement directly without OTP / phone hurdles
+      const simRes = await fetch('/api/payments/mock-simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ orderId: data.orderId }),
+      });
+
+      const simData = await simRes.json();
+      if (!simRes.ok) throw new Error(simData.error || 'Failed to simulate payment');
+
+      // 3. Clear cart and redirect to order status
+      clearCart();
+      navigate(`/orders/${data.orderId}/status`);
+    } catch (err: any) {
+      setCheckoutError(err.message || 'Error processing test simulation');
     } finally {
       setCheckoutLoading(false);
     }
@@ -382,6 +430,17 @@ export const CartPage: React.FC = () => {
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
+            </button>
+
+            {/* 1-Click Instant Dummy Pay (Dev / Test Mode) */}
+            <button
+              onClick={handleDevSimulatePayment}
+              disabled={checkoutLoading || calcLoading}
+              className="w-full mt-2.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-sm"
+              title="Test payment instantly without OTP or phone verification"
+            >
+              <Sparkles className="w-4 h-4 text-emerald-600" />
+              <span>⚡ 1-Click Instant Test Pay (No OTP / Bypass)</span>
             </button>
 
             <div className="pt-3 flex items-center justify-center gap-2 text-xs text-gray-400">

@@ -4,7 +4,7 @@ import { BookOpen, AlertCircle, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const AuthPage: React.FC = () => {
-  const { login, signup, isAuthenticated } = useAuth();
+  const { user, login, signup, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -12,16 +12,21 @@ export const AuthPage: React.FC = () => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [name, setName] = useState<string>('');
+  const [role, setRole] = useState<'STUDENT' | 'ADMIN'>('STUDENT');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Redirect if already logged in
   const from = (location.state as any)?.from?.pathname || '/';
   React.useEffect(() => {
-    if (isAuthenticated) {
-      navigate(from, { replace: true });
+    if (isAuthenticated && user) {
+      if (user.role === 'ADMIN') {
+        navigate('/admin/catalogue', { replace: true });
+      } else {
+        navigate(from.startsWith('/admin') ? '/' : from, { replace: true });
+      }
     }
-  }, [isAuthenticated, navigate, from]);
+  }, [isAuthenticated, user, navigate, from]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,14 +38,22 @@ export const AuthPage: React.FC = () => {
       if (!res.success) {
         setError(res.error || 'Login failed. Please check your credentials.');
       } else {
-        navigate(from, { replace: true });
+        if (res.user?.role === 'ADMIN') {
+          navigate('/admin/catalogue', { replace: true });
+        } else {
+          navigate(from.startsWith('/admin') ? '/' : from, { replace: true });
+        }
       }
     } else {
-      const res = await signup(email, password, name);
+      const res = await signup(email, password, name, role);
       if (!res.success) {
         setError(res.error || 'Signup failed. Please try again.');
       } else {
-        navigate(from, { replace: true });
+        if (res.user?.role === 'ADMIN') {
+          navigate('/admin/catalogue', { replace: true });
+        } else {
+          navigate('/', { replace: true });
+        }
       }
     }
     setLoading(false);
@@ -55,7 +68,11 @@ export const AuthPage: React.FC = () => {
     if (!res.success) {
       setError(res.error || 'Quick login failed');
     } else {
-      navigate(from, { replace: true });
+      if (res.user?.role === 'ADMIN') {
+        navigate('/admin/catalogue', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     }
     setLoading(false);
   };
@@ -119,19 +136,59 @@ export const AuthPage: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. John Doe"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition text-sm"
-                />
-              </div>
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Account Type (Role)
+                  </label>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setRole('STUDENT')}
+                      className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${
+                        role === 'STUDENT'
+                          ? 'border-blue-600 bg-blue-50/70 text-blue-900 ring-2 ring-blue-500/20'
+                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="text-xl">🎓</span>
+                      <div>
+                        <div className="text-xs font-bold">Student</div>
+                        <div className="text-[10px] text-gray-500 leading-tight">Access courses & DPPs</div>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole('ADMIN')}
+                      className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${
+                        role === 'ADMIN'
+                          ? 'border-indigo-600 bg-indigo-50/70 text-indigo-900 ring-2 ring-indigo-500/20'
+                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="text-xl">🛡️</span>
+                      <div>
+                        <div className="text-xs font-bold">Admin Portal</div>
+                        <div className="text-[10px] text-gray-500 leading-tight">Manage catalogue & CMS</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. John Doe"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition text-sm"
+                  />
+                </div>
+              </>
             )}
 
             <div>
@@ -186,15 +243,15 @@ export const AuthPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => handleQuickLogin('student@test.com', 'password123')}
-                className="px-3 py-2 text-xs font-medium bg-gray-100 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition text-center border border-gray-200/60"
+                onClick={() => handleQuickLogin('student@test.com', 'student123')}
+                className="px-3 py-2 text-xs font-medium bg-gray-100 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition text-center border border-gray-200/60 cursor-pointer"
               >
                 👤 Student Account
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickLogin('admin@test.com', 'password123')}
-                className="px-3 py-2 text-xs font-medium bg-gray-100 hover:bg-purple-50 hover:text-purple-700 rounded-xl transition text-center border border-gray-200/60"
+                onClick={() => handleQuickLogin('admin@test.com', 'admin123')}
+                className="px-3 py-2 text-xs font-medium bg-gray-100 hover:bg-purple-50 hover:text-purple-700 rounded-xl transition text-center border border-gray-200/60 cursor-pointer"
               >
                 🛡️ Admin Account
               </button>

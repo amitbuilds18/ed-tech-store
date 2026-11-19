@@ -83,4 +83,14 @@ app.get('/api/admin/dashboard', requireAuth, requireRole(Role.ADMIN), (req: Requ
   });
 });
 
+// Global error handling middleware
+app.use((err: any, _req: Request, res: Response, _next: any) => {
+  console.error('❌ Unhandled Server Error:', err);
+  const status = err.status || 500;
+  res.status(status).json({
+    error: err.message || 'Internal server error',
+    code: err.code,
+  });
+});
+
 

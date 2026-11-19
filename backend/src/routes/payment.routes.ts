@@ -73,4 +73,51 @@ router.post(
   }
 );
 
+// -------------------------------------------------------------
+// POST /payments/mock-simulate - 1-Click Instant Payment Simulator (Dev/Test Mode)
+// Settles order directly with mock payment credentials without Razorpay OTP or phone requirements
+// -------------------------------------------------------------
+router.post(
+  '/mock-simulate',
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { orderId } = req.body;
+      if (!orderId) {
+        res.status(400).json({ error: 'orderId is required' });
+        return;
+      }
+
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+      });
+
+      if (!order) {
+        res.status(404).json({ error: 'Order not found' });
+        return;
+      }
+
+      const mockPaymentId = `pay_mock_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+      const result = await settleOrder(order.id, {
+        razorpayPaymentId: mockPaymentId,
+        razorpaySignature: 'mock_simulated_signature',
+        amountPaise: order.amountPaise,
+        status: 'captured',
+      });
+
+      if (!result.success) {
+        res.status(400).json({ error: result.error || 'Failed to simulate payment settlement' });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Order simulated and settled successfully',
+        orderId: order.id,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Internal simulation error' });
+    }
+  }
+);
+
 export default router;

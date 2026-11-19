@@ -25,7 +25,8 @@ const loginLimiter = rateLimit({
 const signupSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters long'),
-  name: z.string().min(1).optional(),
+  name: z.string().optional().or(z.literal('')),
+  role: z.enum(['STUDENT', 'ADMIN']).optional(),
 });
 
 const loginSchema = z.object({
@@ -50,85 +51,106 @@ function setAuthCookie(res: Response, user: AuthUser): void {
 }
 
 // -------------------------------------------------------------
-// POST /api/auth/signup - Register a new student account
+// POST /api/auth/signup - Register a new account
 // -------------------------------------------------------------
 router.post('/signup', validateBody(signupSchema), async (req: Request, res: Response): Promise<void> => {
-  const { email, password, name } = req.body;
+  try {
+    const { email, password, name, role } = req.body;
 
-  // Check if email already exists
-  const existingUser = await prisma.user.findUnique({
-    where: { email: email.toLowerCase() },
-  });
+    // Check if email already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
 
-  if (existingUser) {
-    res.status(400).json({ error: 'An account with this email already exists' });
-    return;
+    if (existingUser) {
+      res.status(400).json({ error: 'An account with this email already exists' });
+      return;
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new user (Role: ADMIN if requested, otherwise STUDENT)
+    const userRole = role === 'ADMIN' ? Role.ADMIN : Role.STUDENT;
+    const newUser = await prisma.user.create({
+      data: {
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        name: name || null,
+        role: userRole,
+      },
+    });
+
+    const authUser: AuthUser = {
+      id: newUser.id,
+      email: newUser.email,
+      name: newUser.name,
+      role: newUser.role,
+    };
+
+    // Set httpOnly cookie
+    setAuthCookie(res, authUser);
+
+    res.status(201).json({
+      message: 'Account created successfully',
+      user: authUser,
+    });
+  } catch (error: any) {
+    console.error('❌ Detailed Signup Error:', error);
+    if (error?.code === 'P2002') {
+      res.status(400).json({ error: 'An account with this email already exists' });
+      return;
+    }
+    res.status(500).json({
+      error: error?.message || 'Failed to create account. Please try again.',
+      code: error?.code,
+    });
   }
-
-  // Hash password
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  // Create new user (default role: STUDENT)
-  const newUser = await prisma.user.create({
-    data: {
-      email: email.toLowerCase(),
-      password: hashedPassword,
-      name: name || null,
-      role: Role.STUDENT,
-    },
-  });
-
-  const authUser: AuthUser = {
-    id: newUser.id,
-    email: newUser.email,
-    name: newUser.name,
-    role: newUser.role,
-  };
-
-  // Set httpOnly cookie
-  setAuthCookie(res, authUser);
-
-  res.status(201).json({
-    message: 'Account created successfully',
-    user: authUser,
-  });
 });
 
 // -------------------------------------------------------------
 // POST /api/auth/login - Authenticate with email and password
 // -------------------------------------------------------------
 router.post('/login', loginLimiter, validateBody(loginSchema), async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  const user = await prisma.user.findUnique({
-    where: { email: email.toLowerCase() },
-  });
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
 
-  if (!user) {
-    res.status(401).json({ error: 'Invalid email or password' });
-    return;
+    if (!user) {
+      res.status(401).json({ error: 'Invalid email or password' });
+      return;
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      res.status(401).json({ error: 'Invalid email or password' });
+      return;
+    }
+
+    const authUser: AuthUser = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    };
+
+    // Set httpOnly cookie
+    setAuthCookie(res, authUser);
+
+    res.status(200).json({
+      message: 'Logged in successfully',
+      user: authUser,
+    });
+  } catch (error: any) {
+    console.error('❌ Detailed Login Error:', error);
+    res.status(500).json({
+      error: error?.message || 'Login failed. Please check your connection.',
+      code: error?.code,
+    });
   }
-
-  const isPasswordValid = await bcrypt.compare(password, user.password);
-  if (!isPasswordValid) {
-    res.status(401).json({ error: 'Invalid email or password' });
-    return;
-  }
-
-  const authUser: AuthUser = {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-  };
-
-  // Set httpOnly cookie
-  setAuthCookie(res, authUser);
-
-  res.status(200).json({
-    message: 'Logged in successfully',
-    user: authUser,
-  });
 });
 
 // -------------------------------------------------------------
@@ -165,6 +187,44 @@ router.get('/me', requireAuth, async (req: Request, res: Response): Promise<void
   }
 
   res.status(200).json({ user });
+});
+
+// -------------------------------------------------------------
+// POST /api/auth/dev-admin-login - Instant 1-Click Admin Access (Demo & Development)
+// -------------------------------------------------------------
+router.post('/dev-admin-login', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    let admin = await prisma.user.findFirst({
+      where: { role: Role.ADMIN },
+    });
+
+    if (!admin) {
+      const password = await bcrypt.hash('admin123', 10);
+      admin = await prisma.user.create({
+        data: {
+          email: 'admin@test.com',
+          password,
+          name: 'System Admin',
+          role: Role.ADMIN,
+        },
+      });
+    }
+
+    const authUser: AuthUser = {
+      id: admin.id,
+      email: admin.email,
+      name: admin.name,
+      role: Role.ADMIN,
+    };
+
+    setAuthCookie(res, authUser);
+    res.status(200).json({
+      message: 'Admin session activated',
+      user: authUser,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to activate admin session' });
+  }
 });
 
 export default router;

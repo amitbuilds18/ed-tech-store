@@ -124,36 +124,72 @@ export const CataloguePage: React.FC = () => {
       <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 rounded-3xl p-8 sm:p-10 text-white shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
         
-        <div className="relative z-10 max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold uppercase tracking-wider text-blue-200 mb-4">
-            <Sparkles className="w-3.5 h-3.5 text-yellow-300" /> Curated Syllabus & Study Materials
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-            Explore Course Catalogue
-          </h1>
-          <p className="mt-2 text-base text-blue-100 max-w-2xl">
-            Choose individual chapters, comprehensive subject packs, or full-class passes. 
-            Enjoy free sample previews for every first chapter!
-          </p>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+          {/* Left: Heading & Search Input */}
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold uppercase tracking-wider text-blue-200 mb-4">
+              <Sparkles className="w-3.5 h-3.5 text-yellow-300" /> Curated Syllabus & Study Materials
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+              Explore Course Catalogue
+            </h1>
+            <p className="mt-2 text-base text-blue-100">
+              Choose individual chapters, comprehensive subject packs, or full-class passes. 
+              Enjoy free sample previews for every first chapter!
+            </p>
 
-          {/* Search Input */}
-          <div className="mt-6 relative">
-            <Search className="w-5 h-5 absolute left-4 top-3.5 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search chapters or subjects (e.g. Real Numbers, Mechanics, Light)..."
-              className="w-full pl-12 pr-4 py-3 rounded-2xl bg-white text-gray-900 shadow-md focus:outline-none focus:ring-4 focus:ring-blue-400/30 text-sm placeholder-gray-400 font-medium"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-4 top-3 text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-300"
-              >
-                Clear
-              </button>
-            )}
+            {/* Search Input */}
+            <div className="mt-6 relative">
+              <Search className="w-5 h-5 absolute left-4 top-3.5 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search chapters or subjects (e.g. Real Numbers, Mechanics, Light)..."
+                className="w-full pl-12 pr-4 py-3 rounded-2xl bg-white text-gray-900 shadow-md focus:outline-none focus:ring-4 focus:ring-blue-400/30 text-sm placeholder-gray-400 font-medium"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-4 top-3 text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-300"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Quick Stats Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-3 shrink-0 lg:w-64">
+            <div className="bg-white/10 backdrop-blur-md border border-white/15 p-4 rounded-2xl flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-200 flex items-center justify-center">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="block text-xl font-black text-white leading-tight">50+</span>
+                <span className="text-xs text-blue-200 font-medium">Curated Chapters</span>
+              </div>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-md border border-white/15 p-4 rounded-2xl flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-200 flex items-center justify-center">
+                <Award className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="block text-xl font-black text-white leading-tight">10,000+</span>
+                <span className="text-xs text-blue-200 font-medium">Active Students</span>
+              </div>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-md border border-white/15 p-4 rounded-2xl flex items-center gap-3.5 col-span-2 sm:col-span-1 lg:col-span-1">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="block text-xl font-black text-white leading-tight">4.9 / 5</span>
+                <span className="text-xs text-blue-200 font-medium">Student Rating</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
